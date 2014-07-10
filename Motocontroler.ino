@@ -6,6 +6,7 @@ const int T_AGUA_INI = 55;
 const int T_AGUA_TROCA_PANELA = 78;
 const long TEMPO_RAMPAS[]   = {5000,5000};//1320000;
 const int TEMPERATURA_RAMPAS[]   = {65,72};
+const long TEMPO_FERVURA = 5000;
 
 //Portas
 const int buttonCenter = A0;
@@ -43,6 +44,16 @@ const int SUBIR_TEMPERATURA_STATE       = 14;
 const int TESTE_DE_IODO_STATE       = 15; 
 const int BRASSAGEM_IODO_STATE       = 16;
 const int PREPARAR_FERVURA_STATE       = 17; 
+const int PREPARAR_FERVURA2_STATE       = 18; 
+const int PREPARAR_FERVURA3_STATE       = 19; 
+const int PREPARAR_FERVURA4_STATE       = 20; 
+const int FERVURA_STATE       = 21; 
+const int CONTA_TEMPO_STATE       = 22; 
+const int WHIRLFLOC_STATE       = 23; 
+const int LUPULO_STATE       = 24; 
+const int LUPULO2_STATE       = 25; 
+
+
 
 
 //Constantes
@@ -252,7 +263,7 @@ void loop() {
         lcd.print("de Iodo?");
         lcd.setCursor(0, 3);
         lcd.print("<SIM>  NAO");
-        simAction = FIM_STATE;
+        simAction = PREPARAR_FERVURA_STATE;
         noAction = BRASSAGEM_IODO_STATE;
         state = YES_NO_STATE;
         lcdSelected = 0;
@@ -267,7 +278,7 @@ void loop() {
         lcd.print("C!");
         digitalWrite(R1, HIGH);
         digitalWrite(R2, HIGH);
-        state = STOP_STATE;
+        state = PREPARAR_FERVURA2_STATE;
         break;
       }      
       case PREPARAR_FERVURA2_STATE:
@@ -313,9 +324,96 @@ void loop() {
           lcd.print("Abrir V6 e V1 ");
           lcd.setCursor(0, 3);
           lcd.print("<OK>");
-          simAction = FIM_STATE;
+          simAction = PREPARAR_FERVURA3_STATE;
           state = OK_STATE;
         }
+        break;
+      }
+      case PREPARAR_FERVURA3_STATE:
+      {
+        digitalWrite(BOMBA, HIGH);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Esvaziou PB?");        
+        lcd.setCursor(0, 3);
+        lcd.print("<OK>");
+        simAction = PREPARAR_FERVURA4_STATE;
+        state = OK_STATE;
+        break;
+      }
+      case PREPARAR_FERVURA4_STATE:
+      {
+        digitalWrite(BOMBA, LOW);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Fechar V1,V2 e V6");        
+        lcd.setCursor(0, 3);
+        lcd.print("<OK>");
+        simAction = FERVURA_STATE;
+        state = OK_STATE;
+        break;
+      }
+      case FERVURA_STATE:
+      {
+        digitalWrite(R3, HIGH);
+        int temper = lerTemperatura(T3);
+        if ( temper > 99 )
+        {
+           lcd.clear();
+           lcd.setCursor(0, 0);
+           lcd.print("Fervendo!");
+           state = CONTA_TEMPO_STATE;
+           lastIntervalTime = millis();
+           tempoAlvo = TEMPO_FERVURA;
+           simAction = LUPULO_STATE;
+        }              
+        if ( millis() - lastLCD > 1000 )
+        {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Esquentando!");
+          lcd.setCursor(0, 1);
+          lcd.print(temper);
+          lcd.print("C    ");
+          lastLCD = millis();
+        }
+        
+        break;
+      }
+      case LUPULO_STATE:
+      {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Adicionar Lupulo!");
+        lcd.setCursor(0, 3);
+        lcd.print("<OK>");
+        simAction = LUPULO2_STATE;
+        state = OK_STATE;
+        break;
+      }
+      case LUPULO2_STATE:
+      {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Fervendo2!");
+        state = CONTA_TEMPO_STATE;
+        lastIntervalTime = millis();
+        tempoAlvo = TEMPO_FERVURA;
+        simAction = WHIRLFLOC_STATE;
+        break;
+      }
+      case WHIRLFLOC_STATE:
+      {
+        digitalWrite(R3, LOW);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Coloque o Whirlfloc!");
+        lcd.setCursor(0, 1);
+        lcd.print("Abrir V3 e V6!");
+        lcd.setCursor(0, 3);
+        lcd.print("<OK>");
+        simAction = FIM_STATE;
+        state = OK_STATE;
         break;
       }
       case FIM_STATE:
@@ -350,6 +448,7 @@ void loop() {
           if ( seg <10 )
             lcd.print(0);
           lcd.print(seg);
+          lastLCD = millis();
         }
         break;
       }
@@ -375,6 +474,28 @@ void loop() {
           lcd.setCursor(0, 1);
           lcd.print(temper);
           lcd.print("C    ");
+          int mim = tempoFalta / 60000;
+          int seg = (tempoFalta - mim*60000)/1000;
+          lcd.print(mim);
+          lcd.print(":");
+          if ( seg <10 )
+            lcd.print(0);
+          lcd.print(seg);
+        }
+        break;
+      }
+      case CONTA_TEMPO_STATE:
+      {      
+        
+        long pass = (millis() - lastIntervalTime);
+        long tempoFalta = tempoAlvo - pass;        
+        if ( tempoFalta <= 0 )  
+        {
+          state = simAction;
+        }
+        if ( millis() - lastLCD > 1000 )
+        {
+          lcd.setCursor(0, 1);
           int mim = tempoFalta / 60000;
           int seg = (tempoFalta - mim*60000)/1000;
           lcd.print(mim);
