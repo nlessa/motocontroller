@@ -4,6 +4,7 @@
 const int N_RAMPAS = 2;
 const int T_AGUA_INI = 55;
 const int T_AGUA_TROCA_PANELA = 78;
+const int T_FIM_WIRL_PULL = 50;
 const long TEMPO_RAMPAS[]   = {5000,5000};//1320000;
 const int TEMPERATURA_RAMPAS[]   = {65,72};
 const long TEMPO_FERVURA = 5000;
@@ -72,6 +73,7 @@ int temperaturaAlvo;
 int simAction;
 int noAction;
 int rampa_atual = 0;
+boolean esquentaLavagem = false;
 
 void setup() {
   pinMode(R1, OUTPUT);
@@ -90,6 +92,18 @@ void setup() {
 }
 
 void loop() {
+  if (esquentaLavagem)
+  {
+    int temper2 = lerTemperatura(T2);
+    if ( temper2 < T_AGUA_TROCA_PANELA )
+    {
+       digitalWrite(R2, HIGH);
+    }
+    else
+    {
+       digitalWrite(R2, LOW);
+    }
+  }
   switch (state)
   {
       case INIT_STATE:
@@ -213,6 +227,7 @@ void loop() {
       }
       case BRASSAGEM_STATE:
       {
+        esquentaLavagem = true;
         if ( rampa_atual < N_RAMPAS )
         {
           lcd.clear();
@@ -277,7 +292,6 @@ void loop() {
         lcd.print(T_AGUA_TROCA_PANELA);
         lcd.print("C!");
         digitalWrite(R1, HIGH);
-        digitalWrite(R2, HIGH);
         state = PREPARAR_FERVURA2_STATE;
         break;
       }      
@@ -293,14 +307,6 @@ void loop() {
            digitalWrite(R1, LOW);
         }
         int temper2 = lerTemperatura(T2);
-        if ( temper2 < T_AGUA_TROCA_PANELA )
-        {
-           digitalWrite(R2, HIGH);
-        }
-        else
-        {
-           digitalWrite(R2, LOW);
-        }
         if ( millis() - lastLCD > 1000 )
         {
           lcd.setCursor(0, 1);
@@ -316,6 +322,7 @@ void loop() {
         {
           digitalWrite(R1, LOW);
           digitalWrite(R2, LOW);
+          esquentaLavagem = false;
           digitalWrite(BOMBA, LOW);
           lcd.clear();
           lcd.setCursor(0, 0);
@@ -414,6 +421,42 @@ void loop() {
         lcd.print("<OK>");
         simAction = FIM_STATE;
         state = OK_STATE;
+        break;
+      }
+      case WHIRLFLOC2_STATE:
+      {
+        digitalWrite(BOMBA, HIGH);        
+        int temper = lerTemperatura(T3);
+        if ( millis() - lastLCD > 1000 )
+        {
+          lcd.setCursor(0, 1);
+          lcd.print("Whirl Pull");
+          lcd.setCursor(0, 2);
+          lcd.print(temper);
+          lcd.print("C    ");          
+        }
+        if ( temper < T_AGUA_TROCA_PANELA  )
+        {
+          digitalWrite(R1, LOW);
+          digitalWrite(R2, LOW);
+          esquentaLavagem = false;
+          digitalWrite(BOMBA, LOW);
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Fechar V4");
+          lcd.setCursor(0, 1);
+          lcd.print("Abrir V6 e V1 ");
+          lcd.setCursor(0, 3);
+          lcd.print("<OK>");
+          simAction = PREPARAR_FERVURA3_STATE;
+          state = OK_STATE;
+        }
+        break;
+      }
+      case WHIRLFLOC3_STATE:
+      {
+        digitalWrite(BOMBA, LOW);        
+        
         break;
       }
       case FIM_STATE:
