@@ -4,10 +4,12 @@
 const int N_RAMPAS = 2;
 const int T_AGUA_INI = 55;
 const int T_AGUA_TROCA_PANELA = 78;
+const int T_AGUA_TROCA_FERMENTADOR = 50;
 const int T_FIM_WIRL_PULL = 50;
 const long TEMPO_RAMPAS[]   = {5000,5000};//1320000;
 const int TEMPERATURA_RAMPAS[]   = {65,72};
 const long TEMPO_FERVURA = 5000;
+const long TEMPO_WHIRLFLOC = 5000;
 
 //Portas
 const int buttonCenter = A0;
@@ -52,7 +54,12 @@ const int FERVURA_STATE       = 21;
 const int CONTA_TEMPO_STATE       = 22; 
 const int WHIRLFLOC_STATE       = 23; 
 const int LUPULO_STATE       = 24; 
-const int LUPULO2_STATE       = 25; 
+const int LUPULO2_STATE       = 25;
+const int WHIRLFLOC2_STATE    = 26;
+const int WHIRLFLOC3_STATE    = 27;
+const int FERMENTADOR_STATE    = 28;
+
+
 
 
 
@@ -419,7 +426,7 @@ void loop() {
         lcd.print("Abrir V3 e V6!");
         lcd.setCursor(0, 3);
         lcd.print("<OK>");
-        simAction = FIM_STATE;
+        simAction = WHIRLFLOC2_STATE;
         state = OK_STATE;
         break;
       }
@@ -429,38 +436,74 @@ void loop() {
         int temper = lerTemperatura(T3);
         if ( millis() - lastLCD > 1000 )
         {
-          lcd.setCursor(0, 1);
-          lcd.print("Whirl Pull");
-          lcd.setCursor(0, 2);
-          lcd.print(temper);
-          lcd.print("C    ");          
-        }
-        if ( temper < T_AGUA_TROCA_PANELA  )
-        {
-          digitalWrite(R1, LOW);
-          digitalWrite(R2, LOW);
-          esquentaLavagem = false;
-          digitalWrite(BOMBA, LOW);
           lcd.clear();
           lcd.setCursor(0, 0);
-          lcd.print("Fechar V4");
+          lcd.print("Whirlpull   ");
+          lcd.print(T_AGUA_TROCA_FERMENTADOR);
+          lcd.print("C");
           lcd.setCursor(0, 1);
-          lcd.print("Abrir V6 e V1 ");
-          lcd.setCursor(0, 3);
-          lcd.print("<OK>");
-          simAction = PREPARAR_FERVURA3_STATE;
-          state = OK_STATE;
+          lcd.print(temper);
+          lcd.print("C    ");
+          lastLCD = millis();          
+        }
+        if ( temper < T_AGUA_TROCA_FERMENTADOR  )
+        {
+          state = WHIRLFLOC3_STATE;
+          lastIntervalTime = millis();
+          
         }
         break;
       }
       case WHIRLFLOC3_STATE:
       {
-        digitalWrite(BOMBA, LOW);        
-        
+        digitalWrite(BOMBA, LOW);
+        long pass = (millis() - lastIntervalTime);
+        long tempoFalta = TEMPO_WHIRLFLOC - pass;
+        if ( millis() - lastLCD > 1000 )
+        {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Aguardando...");
+          lcd.setCursor(0, 1);
+          
+          int mim = tempoFalta / 60000;
+          int seg = (tempoFalta - mim*60000)/1000;
+          lcd.print(mim);
+          lcd.print(":");
+          if ( seg <10 )
+            lcd.print(0);
+          lcd.print(seg);
+          lastLCD = millis();          
+        }                
+        if ( tempoFalta <= 0 )  
+        {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Abrir V5");
+          lcd.setCursor(0, 1);
+          lcd.print("Fechar V6"); 
+          lcd.setCursor(0, 3);
+          lcd.print("<OK>");
+          simAction = FERMENTADOR_STATE;
+          state = OK_STATE;
+        }
+        break;
+      }
+      case FERMENTADOR_STATE:
+      {
+        digitalWrite(BOMBA, HIGH); 
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Esvaziou PF?");
+        lcd.setCursor(0, 3);
+        lcd.print("<OK>");
+        simAction = FIM_STATE;
+        state = OK_STATE;
         break;
       }
       case FIM_STATE:
       {
+        digitalWrite(BOMBA, LOW); 
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("FIM!");
