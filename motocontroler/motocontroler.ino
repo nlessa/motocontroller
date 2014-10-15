@@ -8,7 +8,8 @@ const int T_AGUA_TROCA_FERMENTADOR = 50;
 const int T_FIM_WIRL_PULL = 50;
 const long TEMPO_RAMPAS[]   = {5000,5000};//1320000;
 const int TEMPERATURA_RAMPAS[]   = {65,72};
-const long TEMPO_FERVURA = 5000;
+const long TEMPO_FERVURA = 10000;
+const long TEMPO_LUPULOS[]   = {9000,5000};
 const long TEMPO_WHIRLFLOC = 5000;
 
 //Portas
@@ -81,6 +82,8 @@ int simAction;
 int noAction;
 int rampa_atual = 0;
 boolean esquentaLavagem = false;
+int lupulo_atual = 0;
+
 
 void setup() {
   pinMode(R1, OUTPUT);
@@ -371,16 +374,7 @@ void loop() {
       {
         digitalWrite(R3, HIGH);
         int temper = lerTemperatura(T3);
-        if ( temper > 99 )
-        {
-           lcd.clear();
-           lcd.setCursor(0, 0);
-           lcd.print("Fervendo!");
-           state = CONTA_TEMPO_STATE;
-           lastIntervalTime = millis();
-           tempoAlvo = TEMPO_FERVURA;
-           simAction = LUPULO_STATE;
-        }              
+                  
         if ( millis() - lastLCD > 1000 )
         {
           lcd.clear();
@@ -391,7 +385,16 @@ void loop() {
           lcd.print("C    ");
           lastLCD = millis();
         }
-        
+        if ( temper > 99 )
+        {
+           lcd.clear();
+           lcd.setCursor(0, 0);
+           lcd.print("Fervendo!");
+           state = CONTA_TEMPO_STATE;
+           lastIntervalTime = millis();
+           tempoAlvo = TEMPO_FERVURA;
+           simAction = LUPULO_STATE;
+        }    
         break;
       }
       case LUPULO_STATE:
